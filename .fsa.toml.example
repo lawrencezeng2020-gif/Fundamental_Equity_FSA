@@ -1,0 +1,34 @@
+# FSA local configuration -- example.
+#
+# Copy this file to one of:
+#   .fsa.toml            (repo root; gitignored, preferred for this project)
+#   ~/.fsa/config.toml    (per-user fallback, useful outside a checkout)
+#
+# Then edit the values below. `.fsa.toml` itself is gitignored -- never commit
+# your real name/email or a populated copy of this file.
+
+# REQUIRED. SEC EDGAR rejects every request without a User-Agent of the form
+# "Name email@domain" (returns HTTP 403). Replace both the name and the email.
+sec_user_agent = "Your Name your.email@example.com"
+
+# Optional -- all of the below have sensible defaults and may be omitted.
+
+# Directory for the revalidating SEC response cache (ETag / 24h TTL).
+# Relative paths are resolved against the current working directory.
+# cache_dir = ".cache"
+
+# Directory generated workbooks are written to. Created automatically if missing.
+# output_dir = "~/Documents/FSA_Output"
+
+# Default number of historical fiscal years pulled into the Financials sheet.
+# historical_years = 10
+
+# Default number of forward years in the DCF projection grid.
+# projection_years = 5
+
+# SEC permits up to 10 requests/second; this tool caps itself below that as a
+# safety margin. Do not raise this above 10.
+# rate_limit_rps = 5
+
+# How long a cached SEC response is considered fresh before revalidating.
+# cache_ttl_hours = 24

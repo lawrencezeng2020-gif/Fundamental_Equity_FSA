@@ -1,0 +1,523 @@
+# Canonical line item -> us-gaap/dei tag mapping (PLANNING.md Section 13.3).
+#
+# Resolution order per period, implemented in fsa/normalize/statements.py:
+#   1. `tags`, in priority order (the ALTERNATIVES mechanism). Where more
+#      than one tag in this list has a value for the same period, the
+#      values are compared; if they disagree beyond tolerance a
+#      STITCH_DISAGREEMENT warning is raised (still resolving to the
+#      highest-priority tag's value -- flagged, not silently dropped). This
+#      is also how PER-PERIOD STITCHING falls out naturally: different
+#      periods on the same line item's timeline are commonly satisfied by
+#      different tags as accounting standards or a filer's own tagging
+#      practice changes (e.g. TSLA revenue, MSFT/KO cost of revenue).
+#   2. `compose`, if no single tag in `tags` covers the period (the
+#      COMPOSITION mechanism) -- summed from whichever of the listed
+#      component tags have a value for that exact period (not all
+#      components are always present, e.g. FinanceLeaseRightOfUseAsset
+#      Amortization only exists from ASC 842 adoption onward; at least one
+#      present component is required, or the period is a gap).
+#   3. Otherwise: a gap (`value=None`, mechanism=MISSING). Never zero-filled.
+#
+# `derived: true` line items are NOT resolved from tags at all -- they are
+# computed in Python from *other already-resolved canonical line items* for
+# the same period (Mechanism.DERIVED). This is an addition beyond the literal
+# Section 13.3 sketch, needed for `change_in_nwc` (see the note
+# on that item below) and flagged in the Phase 2 report.
+#
+# `is_subtotal: true` line items carry no tags/compose/derived at all -- Phase
+# 2 does not populate them (PLANNING.md Section 13.2 invariant 4); Phase 3
+# writes them as Excel formulas summing their components.
+#
+# Every non-subtotal, non-derived line item declares `namespace` (default
+# us-gaap; `shares_outstanding_dei` is the one dei-namespace exception) and
+# `unit` (USD / USD/shares / shares) -- an addition beyond the section 13.3
+# sketch, needed because `schema.Cell.unit` is a required field and inferring
+# it from the key name would be fragile. Flagged in the Phase 2 report.
+
+# ============================== INCOME STATEMENT ==============================
+
+revenue:
+  label: Total revenue
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  anchor: true  # establishes the period axis once (PLANNING.md Section 5.1); every other line item is filled against it.
+  tags:
+    - RevenueFromContractWithCustomerExcludingAssessedTax  # ASC 606 (2018+): AAPL, MSFT, TSLA, RDDT, CAVA
+    - RevenueFromContractWithCustomerIncludingAssessedTax
+    - Revenues                                             # pre-606 filers and JPM's "total net revenue"
+    - RevenuesNetOfInterestExpense                         # JPM: dual-tagged alongside `Revenues` with identical values every year observed (2013-2025), but is the ONLY one of the two still carrying quarterly granularity into 2026 -- confirmed live; without it JPM's LTM column silently falls back to its latest FY once `Revenues` stops receiving interim (10-Q) facts.
+    - SalesRevenueNet
+    - SalesRevenueGoodsNet                                 # pre-2016 KO, pre-2018 TSLA
+    - InterestAndDividendIncomeOperating                   # rarely wins in practice (superseded by Revenues for JPM by CY2012) -- kept as a last-resort fallback for a bank filer with nothing else tagged
+
+cost_of_revenue:
+  label: Cost of revenue
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - CostOfRevenue                    # TSLA (all years), MSFT (2008-2017)
+    - CostOfGoodsAndServicesSold        # AAPL (all years), MSFT (2016+), KO (2016+)
+    - CostOfGoodsSold                   # KO (pre-2016), MSFT (2014-2017)
+
+gross_profit:
+  label: Gross profit
+  statement: income
+  period_type: duration
+  sign: as_reported
+  is_subtotal: true   # = revenue - cost_of_revenue, Phase 3 formula
+
+rd_expense:
+  label: Research & development expense
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - ResearchAndDevelopmentExpense
+
+sga_expense:
+  label: Selling, general & administrative expense
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - SellingGeneralAndAdministrativeExpense   # AAPL, KO, TSLA, CAVA, XOM
+  compose:
+    # MSFT never reports a combined SG&A tag -- it always splits G&A and
+    # S&M as two separate income-statement lines. Verified: neither tag
+    # overlaps in concept (mutually exclusive expense captions), so summing
+    # is safe, unlike the short_term_debt composition below.
+    - GeneralAndAdministrativeExpense
+    - SellingAndMarketingExpense
+
+operating_income:
+  label: Operating income
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - OperatingIncomeLoss
+
+interest_expense:
+  label: Interest expense
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - InterestExpense
+    - InterestExpenseNonoperating
+    - InterestExpenseDebt
+
+pretax_income:
+  label: Income before income taxes
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest
+    - IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments
+
+income_tax_expense:
+  label: Income tax expense
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - IncomeTaxExpenseBenefit
+
+net_income:
+  label: Net income
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - NetIncomeLoss
+    - ProfitLoss
+
+diluted_shares:
+  label: Diluted weighted-average shares outstanding
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: shares
+  tags:
+    - WeightedAverageNumberOfDilutedSharesOutstanding
+
+diluted_eps:
+  label: Diluted earnings per share
+  statement: income
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD/shares
+  tags:
+    - EarningsPerShareDiluted
+
+# ================================ BALANCE SHEET ================================
+
+cash_and_equivalents:
+  label: Cash and cash equivalents
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - CashAndCashEquivalentsAtCarryingValue
+    - CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents
+    - Cash
+
+short_term_investments:
+  label: Short-term investments
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - ShortTermInvestments
+    - MarketableSecuritiesCurrent
+    - AvailableForSaleSecuritiesCurrent
+
+accounts_receivable:
+  label: Accounts receivable, net
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - AccountsReceivableNetCurrent
+    - ReceivablesNetCurrent
+
+inventory:
+  label: Inventory
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - InventoryNet
+
+total_current_assets:
+  label: Total current assets
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - AssetsCurrent
+
+total_assets:
+  label: Total assets
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - Assets
+
+accounts_payable:
+  label: Accounts payable
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - AccountsPayableCurrent
+    - AccountsPayableTradeCurrent
+
+short_term_debt:
+  label: Short-term debt (current portion)
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  # No `compose` here deliberately (judgment call, flagged in the Phase 2
+  # report): ShortTermBorrowings, LongTermDebtCurrent and CommercialPaper
+  # are sometimes each a *complete* "current debt" figure on their own and
+  # sometimes mutually-exclusive components that should be summed --
+  # confirming which, for a given filer, requires reading the actual
+  # balance sheet presentation rather than inferring from the taxonomy
+  # alone. Composing them blindly risks silent double-counting, which is a
+  # worse failure than the gap this alternatives-only list will sometimes
+  # produce (a flagged gap beats a confidently wrong number).
+  # `LongTermDebtAndCapitalLeaseObligationsCurrent` added per second
+  # coordinator review round: post-ASC 842, finance leases belong in debt
+  # for net-debt purposes, so this is a true synonym for "current debt"
+  # (not a broader concept) -- confirmed as TSLA's tag for this line
+  # 2014-2018. `DebtCurrent` stays highest priority: it is TSLA's own
+  # total-current-debt tag from 2016 onward.
+  tags:
+    - DebtCurrent
+    - LongTermDebtCurrent
+    - LongTermDebtAndCapitalLeaseObligationsCurrent
+    - ShortTermBorrowings
+    - CommercialPaper
+
+total_current_liabilities:
+  label: Total current liabilities
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - LiabilitiesCurrent
+
+long_term_debt:
+  label: Long-term debt (noncurrent portion)
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  # Coordinator correction (Phase 2 review, round 1): `LongTermDebt` and
+  # `LongTermDebtNoncurrent` are NOT synonyms -- confirmed against live AAPL
+  # data, `LongTermDebt` ($90.7bn) is the TOTAL including the current
+  # portion, `LongTermDebtNoncurrent` ($78.3bn) excludes it. Putting both in
+  # one alternatives list let the total-flavoured tag win in some periods,
+  # double-counting the current portion once combined with
+  # `short_term_debt` in `total_debt` -- an error that would have flowed
+  # straight into net debt and the DCF's equity bridge. `LongTermDebt` is
+  # deliberately excluded from `tags` here: a tag belongs in a priority list
+  # only if it is a true synonym, never merely "a related number."
+  #
+  # Round 2: `LongTermDebtAndCapitalLeaseObligationsNoncurrent` added as a
+  # true alternative -- post-ASC 842, finance leases belong in debt for
+  # net-debt purposes, and this is KO's own replacement tag for this exact
+  # line from FY2023 onward (KO stopped tagging `LongTermDebtNoncurrent`
+  # then), not a broader concept. TSLA abandoned `LongTermDebtNoncurrent`
+  # after 2013 and has no noncurrent tag of any kind covering 2016-2025;
+  # same for JPM/RDDT/CAVA. These filers are left an honest gap here.
+  #
+  # Round 3 (tried and reverted): a `derived_fallback_tag: LongTermDebt`
+  # entry once backfilled this gap as `LongTermDebt - short_term_debt`, on
+  # the premise that `LongTermDebt` is always the noncurrent-plus-current
+  # total (true for AAPL, and true for TSLA itself in 2011-2012, where
+  # LongTermDebt = LongTermDebtNoncurrent + LongTermDebtCurrent exactly).
+  # That premise does not hold across a filer's own history: by TSLA
+  # FY2022, `short_term_debt` resolves to `DebtCurrent` (a broader
+  # current-debt concept including current finance leases) while
+  # `LongTermDebt` excludes finance leases entirely, so the subtraction
+  # computed $13M against an actual noncurrent balance of ~$1,029M -- a
+  # ~99% understatement flowing straight into net debt and the DCF's
+  # equity bridge, the exact failure mode this project exists to prevent.
+  # There is no reliable way to detect or recalibrate for this scope
+  # mismatch generically. `LongTermDebt` therefore stays out of `tags:`
+  # AND out of any derived arithmetic -- it is used only to detect this
+  # situation and raise `DEBT_CONVENTION_UNKNOWN` (see statements.py's
+  # `_check_debt_convention_unknown`), never to compute a value.
+  tags:
+    - LongTermDebtNoncurrent
+    - LongTermDebtAndCapitalLeaseObligationsNoncurrent
+
+total_liabilities:
+  label: Total liabilities
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - Liabilities
+  # Coordinator addition (Phase 2 review): many filers never tag
+  # `Liabilities` at all (confirmed: KO, 0% coverage across its whole 10-
+  # year window). When the direct tag is absent, statements.py backfills
+  # this line item as `total_assets - total_equity` (Mechanism.DERIVED) --
+  # exact by definition of the balance sheet identity, and available
+  # wherever both of those already-resolved line items are. See
+  # `_backfill_total_liabilities` in statements.py. Direct tag always wins
+  # when present; this is strictly a behind-the-tags fallback, not an
+  # alternative in the `tags:` list, since it isn't a us-gaap tag at all.
+
+minority_interest:
+  label: Minority (noncontrolling) interest
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - MinorityInterest
+    - MinorityInterestInOperatingPartnerships
+
+preferred_equity:
+  label: Preferred equity
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - PreferredStockValue
+    - PreferredStockValueOutstanding
+
+total_equity:
+  label: Total stockholders' equity
+  statement: balance
+  period_type: instant
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - StockholdersEquity
+    - StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest
+
+# ================================ CASH FLOW STATEMENT ================================
+
+d_and_a:
+  label: Depreciation & amortization
+  statement: cashflow
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - DepreciationDepletionAndAmortization   # AAPL, KO, RDDT, CAVA, XOM; TSLA through FY2017 only
+    - DepreciationAmortizationAndAccretionNet  # JPM
+  compose:
+    # Neither MSFT nor TSLA (post-2017) reports a combined D&A tag at all --
+    # confirmed empirically (regression tests). Verified mutually exclusive
+    # components: PP&E depreciation, intangible amortization, and (from ASC
+    # 842 adoption on) finance-lease ROU asset amortization.
+    - Depreciation
+    - AmortizationOfIntangibleAssets
+    - FinanceLeaseRightOfUseAssetAmortization
+
+stock_based_comp:
+  label: Stock-based compensation
+  statement: cashflow
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - ShareBasedCompensation
+    - AllocatedShareBasedCompensationExpense
+
+change_in_nwc:
+  label: Change in net working capital
+  statement: cashflow
+  period_type: duration
+  sign: as_reported
+  derived: true
+  # Coordinator correction (Phase 2 review): the previous design derived
+  # this line as the cash-flow residual CFO - NI - D&A - SBC. Under the
+  # indirect method CFO = NI + D&A + SBC + other non-cash items + change in
+  # working capital, so that residual silently absorbed deferred taxes,
+  # impairments, gains/losses on disposals, and everything else non-cash --
+  # a wrong number wearing the right name. No single us-gaap tag reports
+  # working-capital change consistently either, and the granular
+  # IncreaseDecreaseIn* component tags vary wildly by filer (TSLA has 16
+  # distinct such tags, JPM has 6 entirely different ones) with no safe way
+  # to know which subset sums to "the" total. Resolved instead directly from
+  # the balance sheet (Mechanism.DERIVED, computed in statements.py):
+  #     nwc[t]           = accounts_receivable[t] + inventory[t] - accounts_payable[t]
+  #     change_in_nwc[t] = nwc[t] - nwc[t-1]
+  # exactly defined by its three already-resolved inputs, with no residual
+  # absorption of anything else. The first axis period is necessarily a gap
+  # (no prior period to difference against). Coverage inherits from
+  # accounts_receivable/inventory/accounts_payable, so this is a gap
+  # wherever any of the three is (e.g. JPM, a financial-sector filer with no
+  # classified current/noncurrent balance sheet).
+
+cash_from_operations:
+  label: Cash from operations
+  statement: cashflow
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - NetCashProvidedByUsedInOperatingActivities
+    - NetCashProvidedByUsedInOperatingActivitiesContinuingOperations
+
+capex:
+  label: Capital expenditures
+  statement: cashflow
+  period_type: duration
+  sign: negated   # PaymentsTo... tags are reported as a positive outflow magnitude (PLANNING.md Section 5.3.6); stored here as a negative number so it sums directly into unlevered FCF.
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - PaymentsToAcquirePropertyPlantAndEquipment
+    - PaymentsToAcquireProductiveAssets
+
+cash_from_investing:
+  label: Cash from investing activities
+  statement: cashflow
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - NetCashProvidedByUsedInInvestingActivities
+    - NetCashProvidedByUsedInInvestingActivitiesContinuingOperations
+
+cash_from_financing:
+  label: Cash from financing activities
+  statement: cashflow
+  period_type: duration
+  sign: as_reported
+  namespace: us-gaap
+  unit: USD
+  tags:
+    - NetCashProvidedByUsedInFinancingActivities
+    - NetCashProvidedByUsedInFinancingActivitiesContinuingOperations
+
+# ================================ SUPPLEMENTAL ================================
+
+shares_outstanding_dei:
+  label: Shares outstanding (cover page)
+  statement: supplemental
+  period_type: instant
+  sign: as_reported
+  namespace: dei
+  unit: shares
+  cover_page: true   # see fsa/normalize/statements.py: this fact is dated to the filing (cover page), not the fiscal period end -- confirmed for every one of the 8 required test tickers (e.g. AAPL's FY2025 cover-page count is dated 2025-10-17, three weeks after the 2025-09-27 fiscal year end). Exact-date matching against the axis would silently produce 100% gaps for every filer if not for this flag; addition beyond Section 5.2's three mechanisms, flagged in the Phase 2 report.
+  tags:
+    - EntityCommonStockSharesOutstanding
+    # Genuinely absent for some dual/multi-class filers (e.g. RDDT): the
+    # cover page tags per-class shares under a dimensioned context, and
+    # companyfacts only surfaces undimensioned (default-context) facts. A
+    # real, expected gap -- not a mapping failure (PLANNING.md Section 5.3.8).
+
+total_debt:
+  label: Total debt
+  statement: supplemental
+  period_type: instant
+  sign: as_reported
+  is_subtotal: true   # = short_term_debt + long_term_debt, Phase 3 formula
+
+net_debt:
+  label: Net debt
+  statement: supplemental
+  period_type: instant
+  sign: as_reported
+  is_subtotal: true   # = total_debt - cash_and_equivalents - short_term_investments, Phase 3 formula

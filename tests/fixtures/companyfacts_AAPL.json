@@ -1,0 +1,123 @@
+{
+  "cik": 320193,
+  "entityName": "Apple Inc.",
+  "facts": {
+    "dei": {
+      "EntityCommonStockSharesOutstanding": {
+        "label": "Entity Common Stock, Shares Outstanding",
+        "description": "Indicate number of shares or other units outstanding of each of registrant's classes of capital or common stock or other ownership interests, if and as stated on cover of related periodic report. Where multiple classes or units exist define each class/interest by adding class of stock items such as Common Class A [Member], Common Class B [Member] or Partnership Interest [Member] onto the Instrument [Domain] of the Entity Listings, Instrument.",
+        "units": {
+          "shares": [
+            {
+              "end": "2026-04-17",
+              "val": 14687356000,
+              "accn": "0000320193-26-000013",
+              "fy": 2026,
+              "fp": "Q2",
+              "form": "10-Q",
+              "filed": "2026-05-01",
+              "frame": "CY2026Q1I"
+            },
+            {
+              "end": "2026-07-17",
+              "val": 14594180000,
+              "accn": "0000320193-26-000020",
+              "fy": 2026,
+              "fp": "Q3",
+              "form": "10-Q",
+              "filed": "2026-07-31",
+              "frame": "CY2026Q2I"
+            }
+          ]
+        }
+      }
+    },
+    "us-gaap": {
+      "RevenueFromContractWithCustomerExcludingAssessedTax": {
+        "label": "Revenue from Contract with Customer, Excluding Assessed Tax",
+        "description": "Amount, excluding tax collected from customer, of revenue from satisfaction of performance obligation by transferring promised good or service to customer. Tax collected from customer is tax assessed by governmental authority that is both imposed on and concurrent with specific revenue-producing transaction, including, but not limited to, sales, use, value added and excise.",
+        "units": {
+          "USD": [
+            {
+              "start": "2025-09-28",
+              "end": "2026-03-28",
+              "val": 254940000000,
+              "accn": "0000320193-26-000013",
+              "fy": 2026,
+              "fp": "Q2",
+              "form": "10-Q",
+              "filed": "2026-05-01"
+            },
+            {
+              "start": "2025-12-28",
+              "end": "2026-03-28",
+              "val": 111184000000,
+              "accn": "0000320193-26-000013",
+              "fy": 2026,
+              "fp": "Q2",
+              "form": "10-Q",
+              "filed": "2026-05-01",
+              "frame": "CY2026Q1"
+            },
+            {
+              "start": "2025-09-28",
+              "end": "2026-06-27",
+              "val": 364357000000,
+              "accn": "0000320193-26-000020",
+              "fy": 2026,
+              "fp": "Q3",
+              "form": "10-Q",
+              "filed": "2026-07-31"
+            },
+            {
+              "start": "2026-03-29",
+              "end": "2026-06-27",
+              "val": 109417000000,
+              "accn": "0000320193-26-000020",
+              "fy": 2026,
+              "fp": "Q3",
+              "form": "10-Q",
+              "filed": "2026-07-31",
+              "frame": "CY2026Q2"
+            }
+          ]
+        }
+      },
+      "Assets": {
+        "label": "Assets",
+        "description": "Sum of the carrying amounts as of the balance sheet date of all assets that are recognized. Assets are probable future economic benefits obtained or controlled by an entity as a result of past transactions or events.",
+        "units": {
+          "USD": [
+            {
+              "end": "2026-03-28",
+              "val": 371082000000,
+              "accn": "0000320193-26-000013",
+              "fy": 2026,
+              "fp": "Q2",
+              "form": "10-Q",
+              "filed": "2026-05-01",
+              "frame": "CY2026Q1I"
+            },
+            {
+              "end": "2026-06-27",
+              "val": 383266000000,
+              "accn": "0000320193-26-000020",
+              "fy": 2026,
+              "fp": "Q3",
+              "form": "10-Q",
+              "filed": "2026-07-31",
+              "frame": "CY2026Q2I"
+            }
+          ]
+        }
+      }
+    },
+    "srt": {
+      "ScheduleOfEquityMethodInvestmentsTable": {
+        "label": "Schedule of Equity Method Investments [Table]",
+        "description": "Synthetic placeholder for fixture purposes (multi-namespace test only).",
+        "units": {}
+      }
+    }
+  }
+}

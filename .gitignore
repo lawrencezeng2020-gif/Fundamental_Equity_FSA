@@ -216,3 +216,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Fundamental Equity FSA project-specific ---
+
+# Local, gitignored FSA config (holds the SEC User-Agent name/email). Never commit.
+/.fsa.toml
+
+# SEC response cache (revalidating cache, not a data warehouse -- see PLANNING.md Section 2).
+/.cache/
+
+# Generated workbooks, if ever produced inside the repo (default output dir is
+# ~/Documents/FSA_Output, outside the repo, but this guards a local --out override).
+/FSA_Output/
+*_DCF_*.xlsx
+

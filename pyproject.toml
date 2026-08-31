@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fsa"
+version = "0.1.0"
+description = "Automated fundamental equity analysis: SEC EDGAR -> normalized financials -> live Excel DCF model."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "Proprietary" }
+authors = [
+    { name = "Fundamental Equity FSA project" },
+]
+dependencies = [
+    "requests>=2.31",
+    "openpyxl>=3.1",
+    "pyyaml>=6.0",
+    "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+fsa = "fsa.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "live: hits real SEC EDGAR over the network; deselected by default (run explicitly with -m live)",
+]
+addopts = "-m \"not live\""
